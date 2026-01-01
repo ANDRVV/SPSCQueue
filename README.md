@@ -38,7 +38,7 @@ pub inline fn isEmpty(self: *Self) bool
 
 ## Benchmarks
 
-Benchmark results from running `benchmark.zig` on a 12th Gen Intel(R) Core(TM) i7-12700H:
+Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with CPU affinity settings on every thread:
 
 | Queue                        | Throughput (ops/ms) | Latency RTT (ns) |
 | ---------------------------- | ------------------: | ---------------: |
