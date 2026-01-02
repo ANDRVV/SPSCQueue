@@ -15,8 +15,8 @@ defer q.deinit(allocator);
 
 var i: u64 = 0;
 while (i < 1000) : (i += 1) {
-    q1.push(i);
-    _ = q1.pop();
+    q.push(i);
+    _ = q.pop();
 }
 ```
 
