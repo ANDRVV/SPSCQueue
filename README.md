@@ -1,5 +1,5 @@
 # SPSCQueue
-A single producer single consumer wait-free and lock-free fixed size queue written in Zig, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation in C++. This implementation is faster than [rigtorp/SPSCQueue](https://github.com/rigtorp/SPSCQueue/tree/master).
+A single producer single consumer wait-free and lock-free fixed size queue written in Zig, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation in C++ and faster than it.
 
 ## Implementation
 
@@ -38,13 +38,20 @@ pub inline fn isEmpty(self: *Self) bool
 
 ## Benchmarks
 
-Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with CPU affinity settings on every thread:
+Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with `-O3` and CPU affinity settings on every thread:
 
 | Queue                        | Throughput (ops/ms) | Latency RTT (ns) |
 | ---------------------------- | ------------------: | ---------------: |
-| SPSCQueue (Andrea Vaccaro)   |              931449 |              187 |
-| SPSCQueue (rigtorp)          |              166279 |              206 |
-| boost::lockfree::spsc        |              258024 |              224 |
+| SPSCQueue (Andrea Vaccaro)   |              995223 |              164 |
+| SPSCQueue (rigtorp)          |              168015 |              162 |
+| boost::lockfree::spsc        |              188162 |              215 |
+| folly::ProducerConsumerQueue |               88596 |              166 |
+
+<div align="center" style="display:grid;place-items:center;">
+    <p>
+        <img src="https://github.com/ANDRVV/SPSCQueue/blob/main/assets/benchmarks-chart.png?raw=true" alt="benchmark chart">
+    </p>
+</div>
 
 ## About
 
