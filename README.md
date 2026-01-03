@@ -40,12 +40,12 @@ pub inline fn isEmpty(self: *Self) bool
 
 Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with `-O3` and CPU affinity settings on every thread:
 
-| Queue                        | Throughput (ops/ms) | Latency RTT (ns) |
-| ---------------------------- | ------------------: | ---------------: |
-| SPSCQueue (Andrea Vaccaro)   |              995223 |              164 |
-| SPSCQueue (rigtorp)          |              168015 |              162 |
-| boost::lockfree::spsc        |              188162 |              215 |
-| folly::ProducerConsumerQueue |               88596 |              166 |
+| Queue                        | Throughput (ops/ms)     | Latency RTT (ns) |
+| ---------------------------- | ----------------------: | ---------------: |
+| SPSCQueue (Andrea Vaccaro)   | (can reach 1.5M) 995223 |              164 |
+| SPSCQueue (rigtorp)          |                  168015 |              162 |
+| boost::lockfree::spsc        |                  188162 |              215 |
+| folly::ProducerConsumerQueue |                   88596 |              166 |
 
 <div align="center" style="display:grid;place-items:center;">
     <p>
