@@ -5,6 +5,8 @@ A single producer single consumer wait-free and lock-free fixed size queue writt
 
 The implementation is intuitive, aiming for clarity and maximum performance. It also features `recommendedSlots()` for selecting the "sweet spot" for slots.
 
+# Zig
+
 ## Example
 
 ```zig
@@ -34,6 +36,39 @@ pub fn tryPop(self: *Self) ?T
 
 pub inline fn size(self: *Self) usize
 pub inline fn isEmpty(self: *Self) bool
+```
+
+# C++
+
+## Example
+
+```cpp
+size_t slots = recommendedSlots<uint64_t>();
+
+SPSCQueue<uint64_t> q(slots);
+
+for (uint64_t i = 0; i < 1000; ++i) {
+    q.push(i);
+    auto value = q.pop();
+    (void)value;
+}
+```
+
+## API
+
+```cpp
+template<typename T>
+static constexpr size_t recommendedSlots();
+template<typename T>
+explicit SPSCQueue(size_t slots);
+
+void push(const T& value);
+T pop();
+bool tryPush(const T& value);
+bool tryPop(T& out);
+
+size_t size() const;
+bool isEmpty() const;
 ```
 
 ## Benchmarks
