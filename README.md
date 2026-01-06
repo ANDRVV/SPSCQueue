@@ -73,6 +73,7 @@ bool isEmpty() const;
 
 ## Benchmarks
 
+(see benchmark files on src/zig and src/c++)
 Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with `-O3` and CPU affinity settings on every thread:
 
 | Queue                           | Throughput (ops/ms) | Latency RTT (ns) |
