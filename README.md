@@ -40,11 +40,12 @@ pub inline fn isEmpty(self: *Self) bool
 
 Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with CPU affinity settings on every thread:
 
-| Queue                        | Throughput (ops/ms) | Latency RTT (ns) |
-| ---------------------------- | ------------------: | ---------------: |
-| SPSCQueue (Andrea Vaccaro)   |              931449 |              187 |
-| SPSCQueue (rigtorp)          |              166279 |              206 |
-| boost::lockfree::spsc        |              258024 |              224 |
+| Queue                           | Throughput (ops/ms) | Latency RTT (ns) |
+| ------------------------------- | ------------------: | ---------------: |
+| SPSCQueue Zig (Andrea Vaccaro)  | (best-case) 1107122 |  (best-case) 168 |
+| SPSCQueue C++ (Andrea Vaccaro)  | (best-case) 1361409 |  (best-case) 165 |
+| SPSCQueue (rigtorp)             |              166279 |              206 |
+| boost::lockfree::spsc           |              258024 |              224 |
 
 ## About
 

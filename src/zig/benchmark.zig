@@ -1,13 +1,13 @@
 const std = @import("std");
 
-const SPSCQueue = @import("src/queue.zig").SPSCQueue;
-const recommendedSlots = @import("src/queue.zig").recommendedSlots;
+const SPSCQueue = @import("queue.zig").SPSCQueue;
+const recommendedSlots = @import("queue.zig").recommendedSlots;
 
 const slots: u64 = recommendedSlots(u64);
-const iterations: u64 = 10_000_0000;
+const iterations: u64 = 10_000_000;
 
-const core1: usize = 1;
-const core2: usize = 2;
+const core1: usize = 0;
+const core2: usize = 1;
 
 fn pinToCore(core_id: usize) void {
     const CPUSet = std.bit_set.ArrayBitSet(usize, std.os.linux.CPU_SETSIZE * @sizeOf(usize));
@@ -41,7 +41,8 @@ fn producerRTT(q1: *SPSCQueue(u64), q2: *SPSCQueue(u64), core: usize) void {
     var i: u64 = 0;
     while (i < iterations) : (i += 1) {
         q1.push(i);
-        _ = q2.pop();
+        const x = q2.pop();
+        std.mem.doNotOptimizeAway(x);
     }
 }
 
@@ -59,7 +60,8 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     {
-        var queue: SPSCQueue(u64) = try .initCapacity(allocator, slots);
+        var buf: [slots]u64 = undefined;
+        var queue: SPSCQueue(u64) = .initBuffer(&buf);
         defer queue.deinit(allocator);
 
         const th = try std.Thread.spawn(.{}, consumerThroughput, .{ &queue, core1 });
@@ -74,9 +76,12 @@ pub fn main() !void {
     }
 
     {
-        var q1: SPSCQueue(u64) = try .initCapacity(allocator, slots);
+        var buf1: [slots]u64 = undefined;
+        var buf2: [slots]u64 = undefined;
+
+        var q1: SPSCQueue(u64) = .initBuffer(&buf1);
         defer q1.deinit(allocator);
-        var q2: SPSCQueue(u64) = try .initCapacity(allocator, slots);
+        var q2: SPSCQueue(u64) = .initBuffer(&buf2);
         defer q2.deinit(allocator);
 
         const th = try std.Thread.spawn(.{}, consumerRTT, .{ &q1, &q2, core1 });
