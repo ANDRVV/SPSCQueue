@@ -29,6 +29,22 @@
 
 #define CACHE_LINE std::hardware_destructive_interference_size
 
+#if defined(__x86_64__) || defined(__i386__)
+    #define _busy_wait() asm volatile("pause" ::: "memory")
+#elif defined(__aarch64__)
+    #define _busy_wait() asm volatile("isb" ::: "memory")
+#elif defined(__arm__)
+    #if defined(__ARM_ARCH) && (__ARM_ARCH >= 6)
+        #define _busy_wait() asm volatile("yield" ::: "memory")
+    #else
+        #define _busy_wait() ((void)0)
+    #endif
+#elif defined(__riscv) && defined(__riscv_zihintpause)
+    #define _busy_wait() asm volatile("pause" ::: "memory")
+#else
+    #define _busy_wait() ((void)0)
+#endif
+
 template<typename T> [[nodiscard]] constexpr size_t
 recommendedSlots() {
     constexpr size_t sweet_spot = 4096 * CACHE_LINE;
@@ -72,7 +88,7 @@ public:
         while (next == push_cursor_cache) {
             /* in this line, asm pause is commented out assuming the consumer is more hot
              * than the producer. uncomment this line if the producer have more throughput.
-             * asm volatile("pause" ::: "memory"); */
+             * _busy_wait(); */
             push_cursor_cache = consumer.cursor.load(std::memory_order_acquire);
         }
 
@@ -99,7 +115,7 @@ public:
     pop() noexcept {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
         while (index == pop_cursor_cache) {
-            asm volatile("pause" ::: "memory");
+            _busy_wait();
             pop_cursor_cache = producer.cursor.load(std::memory_order_acquire);
         }
 
@@ -124,8 +140,7 @@ public:
     size() noexcept {
         size_t const write_index = producer.cursor.load(std::memory_order_acquire);
         size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
-        size_t const n = items.size();
-        return (write_index + n - read_index) % n;
+        return (write_index - read_index) & (items.size() - 1);
     }
 
     [[nodiscard]] inline size_t
