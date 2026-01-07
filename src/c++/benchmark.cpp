@@ -2,7 +2,7 @@
 #include <chrono>
 #include <thread>
 
-#include "queue.cpp"
+#include "queue.hpp"
 
 void pinToCore(size_t core_id) {
     cpu_set_t cpuset;
