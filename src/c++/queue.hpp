@@ -46,6 +46,8 @@ private:
     };
 
     std::vector<T> items;
+    /* producer and consumer are aligned to cache line
+     * size in order to avoid false sharing */
     Cursor producer;
     Cursor consumer;
 
@@ -68,6 +70,9 @@ public:
         size_t const next = nextIndex(index);
 
         while (next == push_cursor_cache) {
+            /* in this line, asm pause is commented out assuming the consumer is more hot
+             * than the producer. uncomment this line if the producer have more throughput.
+             * asm volatile("pause" ::: "memory"); */
             push_cursor_cache = consumer.cursor.load(std::memory_order_acquire);
         }
 
