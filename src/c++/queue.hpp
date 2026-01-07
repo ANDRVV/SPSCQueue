@@ -53,7 +53,7 @@ private:
     size_t pop_cursor_cache = 0;
 
     inline size_t
-    nextIndex(size_t i) const {
+    nextIndex(size_t i) const noexcept {
         return (i + 1) & (items.size() - 1);
     }
 
@@ -63,7 +63,7 @@ public:
     }
 
     inline void
-    push(const T& value) {
+    push(const T& value) noexcept {
         size_t const index = producer.cursor.load(std::memory_order_relaxed);
         size_t const next = nextIndex(index);
 
@@ -76,7 +76,7 @@ public:
     }
 
     [[nodiscard]] inline bool
-    tryPush(const T& value) {
+    tryPush(const T& value) noexcept {
         size_t const index = producer.cursor.load(std::memory_order_relaxed);
         size_t const next = nextIndex(index);
 
@@ -91,7 +91,7 @@ public:
     }
 
     [[nodiscard]] inline T
-    pop() {
+    pop() noexcept {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
         while (index == pop_cursor_cache) {
             asm volatile("pause" ::: "memory");
@@ -103,7 +103,7 @@ public:
     }
 
     [[nodiscard]] inline bool
-    tryPop(T& out) {
+    tryPop(T& out) noexcept {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
         if (index == pop_cursor_cache) {
             pop_cursor_cache = producer.cursor.load(std::memory_order_acquire);
@@ -116,7 +116,7 @@ public:
     }
 
     [[nodiscard]] inline size_t
-    size() {
+    size() noexcept {
         size_t const write_index = producer.cursor.load(std::memory_order_acquire);
         size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
         size_t const n = items.size();
@@ -124,7 +124,7 @@ public:
     }
 
     [[nodiscard]] inline size_t
-    isEmpty() {
+    isEmpty() noexcept {
         size_t const write_index = producer.cursor.load(std::memory_order_acquire);
         size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
         return write_index == read_index;
