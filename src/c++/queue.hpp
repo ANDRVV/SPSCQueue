@@ -21,54 +21,60 @@
 // A single-producer, single-consumer lock-free queue using a ring buffer.
 
 #include <atomic>
+#include <new>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <vector>
-#include <iostream>
 
-#define CACHE_LINE std::hardware_destructive_interference_size
+#if defined(_MSC_VER)
+    #include <intrin.h>
+#elif defined(__GNUC__) || defined(__clang__)
+    #include <xmmintrin.h>
+#endif
 
-#if defined(__x86_64__) || defined(__i386__)
-    #define _busy_wait() asm volatile("pause" ::: "memory")
-#elif defined(__aarch64__)
-    #define _busy_wait() asm volatile("isb" ::: "memory")
-#elif defined(__arm__)
-    #if defined(__ARM_ARCH) && (__ARM_ARCH >= 6)
-        #define _busy_wait() asm volatile("yield" ::: "memory")
-    #else
-        #define _busy_wait() ((void)0)
-    #endif
-#elif defined(__riscv) && defined(__riscv_zihintpause)
-    #define _busy_wait() asm volatile("pause" ::: "memory")
+#ifdef __cpp_lib_hardware_interference_size
+    #define CACHE_LINE std::hardware_destructive_interference_size
 #else
-    #define _busy_wait() ((void)0)
+    #define CACHE_LINE 64
 #endif
 
 template<typename T> [[nodiscard]] constexpr size_t
 recommendedSlots() {
     constexpr size_t sweet_spot = 4096 * CACHE_LINE;
     size_t slots = sweet_spot / sizeof(T);
-    assert((slots & (slots - 1)) == 0);
+    assert((slots & (slots - 1)) == 0 && slots >= 2);
     return slots;
 }
 
 template<typename T>
 class alignas(CACHE_LINE) SPSCQueue {
+    static_assert(std::is_nothrow_destructible<T>::value,
+                  "T must be nothrow destructible");
+    static_assert(
+        std::is_nothrow_move_constructible<T>::value ||
+        std::is_nothrow_copy_constructible<T>::value,
+        "T must be nothrow movable or copyable");
+
 private:
-    struct alignas(CACHE_LINE) Cursor {
+    struct alignas(CACHE_LINE) AtomicCursor {
         std::atomic<size_t> cursor{0};
         char _padding[CACHE_LINE - sizeof(std::atomic<size_t>)];
+    };
+
+    struct alignas(CACHE_LINE) Cursor {
+        size_t cursor = 0;
+        char _padding[CACHE_LINE - sizeof(size_t)];
     };
 
     std::vector<T> items;
     /* producer and consumer are aligned to cache line
      * size in order to avoid false sharing */
-    Cursor producer;
-    Cursor consumer;
+    AtomicCursor producer;
+    AtomicCursor consumer;
 
-    size_t push_cursor_cache = 0;
-    size_t pop_cursor_cache = 0;
+    Cursor push_cursor_cache;
+    Cursor pop_cursor_cache;
 
     inline size_t
     nextIndex(size_t i) const noexcept {
@@ -81,15 +87,15 @@ public:
     }
 
     inline void
-    push(const T& value) noexcept {
+    push(const T& value) {
         size_t const index = producer.cursor.load(std::memory_order_relaxed);
         size_t const next = nextIndex(index);
 
-        while (next == push_cursor_cache) {
+        while (next == push_cursor_cache.cursor) {
             /* in this line, asm pause is commented out assuming the consumer is more hot
              * than the producer. uncomment this line if the producer have more throughput.
              * _busy_wait(); */
-            push_cursor_cache = consumer.cursor.load(std::memory_order_acquire);
+            push_cursor_cache.cursor = consumer.cursor.load(std::memory_order_acquire);
         }
 
         items[index] = value;
@@ -97,13 +103,13 @@ public:
     }
 
     [[nodiscard]] inline bool
-    tryPush(const T& value) noexcept {
+    tryPush(const T& value) {
         size_t const index = producer.cursor.load(std::memory_order_relaxed);
         size_t const next = nextIndex(index);
 
-        if (next == push_cursor_cache) {
-            push_cursor_cache = consumer.cursor.load(std::memory_order_acquire);
-            if (next == push_cursor_cache) return false;
+        if (next == push_cursor_cache.cursor) {
+            push_cursor_cache.cursor = consumer.cursor.load(std::memory_order_acquire);
+            if (next == push_cursor_cache.cursor) return false;
         }
 
         items[index] = value;
@@ -112,39 +118,40 @@ public:
     }
 
     [[nodiscard]] inline T
-    pop() noexcept {
+    pop() {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
-        while (index == pop_cursor_cache) {
-            _busy_wait();
-            pop_cursor_cache = producer.cursor.load(std::memory_order_acquire);
+        while (index == pop_cursor_cache.cursor) {
+            _mm_pause();
+            pop_cursor_cache.cursor = producer.cursor.load(std::memory_order_acquire);
         }
 
+        T const value = items[index];
         consumer.cursor.store(nextIndex(index), std::memory_order_release);
-        return items[index];
+        return value;
     }
 
     [[nodiscard]] inline bool
-    tryPop(T& out) noexcept {
+    tryPop(T& out) {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
-        if (index == pop_cursor_cache) {
-            pop_cursor_cache = producer.cursor.load(std::memory_order_acquire);
-            if (index == pop_cursor_cache) return false;
+        if (index == pop_cursor_cache.cursor) {
+            pop_cursor_cache.cursor = producer.cursor.load(std::memory_order_acquire);
+            if (index == pop_cursor_cache.cursor) return false;
         }
 
-        consumer.cursor.store(nextIndex(index), std::memory_order_release);
         out = items[index];
+        consumer.cursor.store(nextIndex(index), std::memory_order_release);
         return true;
     }
 
     [[nodiscard]] inline size_t
-    size() noexcept {
+    size() const noexcept {
         size_t const write_index = producer.cursor.load(std::memory_order_acquire);
         size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
         return (write_index - read_index) & (items.size() - 1);
     }
 
-    [[nodiscard]] inline size_t
-    isEmpty() noexcept {
+    [[nodiscard]] inline bool
+    isEmpty() const noexcept {
         size_t const write_index = producer.cursor.load(std::memory_order_acquire);
         size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
         return write_index == read_index;
