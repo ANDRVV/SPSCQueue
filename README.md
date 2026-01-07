@@ -79,7 +79,7 @@ Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with `-O3` and CPU a
 | Queue                           | Throughput (ops/ms) | Latency RTT (ns) |
 | ------------------------------- | ------------------: | ---------------: |
 | SPSCQueue Zig (Andrea Vaccaro)  | (best-case) 1107122 |  (best-case) 168 |
-| SPSCQueue C++ (Andrea Vaccaro)  | (best-case) 1361409 |  (best-case) 165 |
+| SPSCQueue C++ (Andrea Vaccaro)  | (best-case) 1361409 |  (best-case) 151 |
 | SPSCQueue (rigtorp)             |              166279 |              206 |
 | boost::lockfree::spsc           |              258024 |              224 |
 
