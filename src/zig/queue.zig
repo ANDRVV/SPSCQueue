@@ -162,9 +162,6 @@ test "spsc queue multi-threaded" {
     var queue: TestQueue = try .initCapacity(std.heap.page_allocator, 1024);
 
     const producer = try std.Thread.spawn(.{}, producerTest, .{ &queue, iterations });
-
-    for (0..iterations) |i|
-        try std.testing.expect(queue.pop() == i);
-
+    for (0..iterations) |i| try std.testing.expect(queue.pop() == i);
     producer.join();
 }

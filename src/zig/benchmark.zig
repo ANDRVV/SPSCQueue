@@ -1,9 +1,8 @@
 const std = @import("std");
 
 const SPSCQueue = @import("queue.zig").SPSCQueue;
-const recommendedSlots = @import("queue.zig").recommendedSlots;
 
-const slots: u64 = recommendedSlots(u64);
+const slots: u64 = @import("queue.zig").recommendedSlots(u64);
 const iterations: u64 = 10_000_000;
 
 const core1: usize = 0;
@@ -18,16 +17,12 @@ fn pinToCore(core_id: usize) void {
 
 fn producerThroughput(queue: *SPSCQueue(u64), core: usize) void {
     pinToCore(core);
-
     var i: u64 = 0;
-    while (i < iterations) : (i += 1) {
-        queue.push(i);
-    }
+    while (i < iterations) : (i += 1) queue.push(i);
 }
 
 fn consumerThroughput(queue: *SPSCQueue(u64), core: usize) void {
     pinToCore(core);
-
     var i: u64 = 0;
     while (i < iterations) : (i += 1) {
         const value = queue.pop();
@@ -37,7 +32,6 @@ fn consumerThroughput(queue: *SPSCQueue(u64), core: usize) void {
 
 fn producerRTT(q1: *SPSCQueue(u64), q2: *SPSCQueue(u64), core: usize) void {
     pinToCore(core);
-
     var i: u64 = 0;
     while (i < iterations) : (i += 1) {
         q1.push(i);
@@ -48,7 +42,6 @@ fn producerRTT(q1: *SPSCQueue(u64), q2: *SPSCQueue(u64), core: usize) void {
 
 fn consumerRTT(q1: *SPSCQueue(u64), q2: *SPSCQueue(u64), core: usize) void {
     pinToCore(core);
-
     var i: u64 = 0;
     while (i < iterations) : (i += 1) {
         const value = q1.pop();
@@ -60,12 +53,10 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     {
-        var buf: [slots]u64 = undefined;
-        var queue: SPSCQueue(u64) = .initBuffer(&buf);
+        var queue: SPSCQueue(u64) = .initCapacity(allocator, slots);
         defer queue.deinit(allocator);
 
         const th = try std.Thread.spawn(.{}, consumerThroughput, .{ &queue, core1 });
-
         var timer = try std.time.Timer.start();
         producerThroughput(&queue, core2);
         th.join();
@@ -76,20 +67,15 @@ pub fn main() !void {
     }
 
     {
-        var buf1: [slots]u64 = undefined;
-        var buf2: [slots]u64 = undefined;
-
-        var q1: SPSCQueue(u64) = .initBuffer(&buf1);
+        var q1: SPSCQueue(u64) = .initCapacity(allocator, slots);
         defer q1.deinit(allocator);
-        var q2: SPSCQueue(u64) = .initBuffer(&buf2);
+        var q2: SPSCQueue(u64) = .initCapacity(allocator, slots);
         defer q2.deinit(allocator);
 
         const th = try std.Thread.spawn(.{}, consumerRTT, .{ &q1, &q2, core1 });
-
         var timer = try std.time.Timer.start();
         producerRTT(&q1, &q2, core2);
         const elapsed = timer.read();
-
         th.join();
 
         std.debug.print("{d} ns RTT\n", .{@divFloor(elapsed, iterations)});

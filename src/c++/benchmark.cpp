@@ -6,8 +6,10 @@
 
 void pinToCore(size_t core_id) {
     cpu_set_t cpuset;
+
     CPU_ZERO(&cpuset);
     CPU_SET(core_id, &cpuset);
+
     if (sched_setaffinity(0, sizeof(cpuset), &cpuset) != 0) {
         perror("sched_setaffinity");
         std::terminate();
@@ -17,12 +19,13 @@ void pinToCore(size_t core_id) {
 constexpr size_t iterations = 10'000'000;
 size_t slots = recommendedSlots<uint64_t>();
 
-inline void doNotOptimizeAway(uint64_t& val) {
-    asm volatile("" : "+r,m"(val) : : "memory");
+void doNotOptimizeAway(uint64_t& val) {
+    asm volatile("" : "+r,m"(val) :: "memory");
 }
 
 void producerThroughput(SPSCQueue<uint64_t>* q, size_t core) {
     pinToCore(core);
+
     for (uint64_t i = 0; i < iterations; ++i) {
         q->push(i);
     }
@@ -30,6 +33,7 @@ void producerThroughput(SPSCQueue<uint64_t>* q, size_t core) {
 
 void consumerThroughput(SPSCQueue<uint64_t>* q, size_t core) {
     pinToCore(core);
+
     for (uint64_t i = 0; i < iterations; ++i) {
         uint64_t val = q->pop();
         doNotOptimizeAway(val);
@@ -38,6 +42,7 @@ void consumerThroughput(SPSCQueue<uint64_t>* q, size_t core) {
 
 void producerRTT(SPSCQueue<uint64_t>* q1, SPSCQueue<uint64_t>* q2, size_t core) {
     pinToCore(core);
+
     for (uint64_t i = 0; i < iterations; ++i) {
         q1->push(i);
         uint64_t x = q2->pop();
@@ -47,6 +52,7 @@ void producerRTT(SPSCQueue<uint64_t>* q1, SPSCQueue<uint64_t>* q2, size_t core) 
 
 void consumerRTT(SPSCQueue<uint64_t>* q1, SPSCQueue<uint64_t>* q2, size_t core) {
     pinToCore(core);
+
     for (uint64_t i = 0; i < iterations; ++i) {
         uint64_t val = q1->pop();
         q2->push(val);
@@ -70,6 +76,7 @@ int main() {
 
         std::cout << ops_per_ms << " ops/ms\n";
     }
+
     {
         SPSCQueue<uint64_t> q1(slots);
         SPSCQueue<uint64_t> q2(slots);
@@ -81,7 +88,9 @@ int main() {
         consumer_thread.join();
 
         uint64_t elapsed_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
+
         std::cout << (elapsed_ns / iterations) << " ns RTT\n";
     }
+
     return 0;
 }

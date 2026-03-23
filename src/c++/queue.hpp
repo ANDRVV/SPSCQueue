@@ -76,7 +76,7 @@ private:
     Cursor push_cursor_cache;
     Cursor pop_cursor_cache;
 
-    inline size_t
+    inline __attribute__((always_inline)) size_t
     nextIndex(size_t i) const noexcept {
         return (i + 1) & (items.size() - 1);
     }
