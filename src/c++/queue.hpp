@@ -109,9 +109,10 @@ public:
         size_t const next = nextIndex(index);
 
         while (next == push_cursor_cache.cursor) {
-            /* in this line, asm pause is commented out assuming the consumer is more hot
-             * than the producer. uncomment this line if the producer have more throughput.
-             * _busy_wait(); */
+            /* In this line, the `asm pause` function is commented out,
+             * assuming the consumer is hotter than the producer.
+             * Uncomment this line below if the producer has a higher throughput.
+             * spinLoopHint(); */
             push_cursor_cache.cursor = consumer.cursor.load(std::memory_order_acquire);
         }
 

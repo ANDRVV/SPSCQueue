@@ -75,7 +75,7 @@ pub fn SPSCQueue(comptime T: type) type {
             const next = self.nextIndex(index);
             while (next == self.push_cursor_cache) {
                 // in this line, spinLoopHint is commented out assuming the consumer is more hot
-                // than the producer. uncomment this line if the producer have more throughput.
+                // than the producer. Uncomment this line if the producer has more throughput.
                 // std.atomic.spinLoopHint();
                 self.push_cursor_cache = self.consumer.cursor.load(.acquire);
             }
