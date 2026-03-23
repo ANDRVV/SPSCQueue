@@ -98,7 +98,6 @@ pub fn SPSCQueue(comptime T: type) type {
             return true;
         }
 
-        /// Blocking pop
         pub fn pop(self: *Self) T {
             const index = self.consumer.cursor.load(.monotonic);
             while (index == self.pop_cursor_cache) {
@@ -110,7 +109,6 @@ pub fn SPSCQueue(comptime T: type) type {
             return self.items[index];
         }
 
-        /// Non-blocking pop
         pub fn tryPop(self: *Self) ?T {
             const index = self.consumer.cursor.load(.monotonic);
             if (index == self.pop_cursor_cache) {
