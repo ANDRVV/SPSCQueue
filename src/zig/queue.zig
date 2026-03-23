@@ -60,8 +60,7 @@ pub fn SPSCQueue(comptime T: type) type {
         }
 
         pub fn initCapacity(allocator: std.mem.Allocator, slots: usize) error{OutOfMemory}!Self {
-            std.debug.assert(std.math.isPowerOfTwo(slots));
-            return .{ .items = try allocator.alloc(T, slots) };
+            return .initBuffer(try allocator.alloc(T, slots));
         }
 
         pub fn deinit(self: *Self, allocator: std.mem.Allocator) void {
