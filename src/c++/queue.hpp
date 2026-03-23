@@ -39,6 +39,17 @@
     #define CACHE_LINE 64
 #endif
 
+inline __attribute__((always_inline)) void
+spinLoopHint() noexcept {
+#if defined(__x86_64__) || defined(_M_X64)
+    _mm_pause();
+#elif defined(__aarch64__)
+    asm volatile("yield" ::: "memory");
+#else
+    std::this_thread::yield();
+#endif
+}
+
 template<typename T> [[nodiscard]] constexpr size_t
 recommendedSlots() {
     constexpr size_t sweet_spot = 4096 * CACHE_LINE;
@@ -121,7 +132,7 @@ public:
     pop() {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
         while (index == pop_cursor_cache.cursor) {
-            _mm_pause();
+            spinLoopHint();
             pop_cursor_cache.cursor = producer.cursor.load(std::memory_order_acquire);
         }
 
