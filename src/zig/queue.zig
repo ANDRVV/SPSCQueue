@@ -67,7 +67,6 @@ pub fn SPSCQueue(comptime T: type) type {
             allocator.free(self.items);
         }
 
-        /// Blocking push
         pub fn push(self: *Self, value: T) void {
             const index = self.producer.cursor.load(.monotonic);
 
@@ -82,8 +81,7 @@ pub fn SPSCQueue(comptime T: type) type {
             self.items[index] = value;
             self.producer.cursor.store(next, .release);
         }
-
-        /// Non-blocking push
+        
         pub fn tryPush(self: *Self, value: T) bool {
             const index = self.producer.cursor.load(.monotonic);
 
@@ -157,8 +155,7 @@ fn producerTest(queue: *TestQueue, comptime iterations: comptime_int) void {
 test "spsc queue multi-threaded" {
     const iterations = 1000;
     var queue: TestQueue = try .initCapacity(std.heap.page_allocator, 1024);
-
-    const producer = try std.Thread.spawn(.{}, producerTest, .{ &queue, iterations });
+    const producer: std.Thread = try .spawn(.{}, producerTest, .{ &queue, iterations });
     for (0..iterations) |i| try std.testing.expect(queue.pop() == i);
     producer.join();
 }
