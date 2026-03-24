@@ -148,6 +148,11 @@ public:
         return value;
     }
 
+    inline void
+    skip() {
+        (void)pop();
+    }
+
     [[nodiscard]] inline bool
     tryPop(T& out) {
         size_t const index = consumer.cursor.load(std::memory_order_relaxed);
