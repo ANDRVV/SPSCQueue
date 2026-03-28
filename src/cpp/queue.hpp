@@ -82,6 +82,8 @@ private:
     alignas(CACHE_LINE) std::atomic<size_t> producer{0};
     alignas(CACHE_LINE) std::atomic<size_t> consumer{0};
 
+    /* cursors as cache is used to reduce MESI protocol traffic
+     * between shared caches, this improve throughput */
     alignas(CACHE_LINE) size_t push_cursor_cache = 0;
     alignas(CACHE_LINE) size_t pop_cursor_cache = 0;
 

@@ -47,6 +47,8 @@ pub fn SPSCQueue(comptime T: type) type {
         producer: Atomic(usize) align(cache_line) = .init(0),
         consumer: Atomic(usize) align(cache_line) = .init(0),
 
+        // cursors as cache is used to reduce MESI protocol traffic
+        // between shared caches, this improve throughput
         push_cursor_cache: usize align(cache_line) = 0,
         pop_cursor_cache: usize align(cache_line) = 0,
 
