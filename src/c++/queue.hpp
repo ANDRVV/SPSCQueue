@@ -75,6 +75,8 @@ class alignas(CACHE_LINE) SPSCQueue {
 
 private:
     std::vector<T> items;
+    size_t mask;
+
     /* producer and consumer are aligned to cache line
      * size in order to avoid false sharing */
     alignas(CACHE_LINE) std::atomic<size_t> producer{0};
@@ -85,11 +87,11 @@ private:
 
     inline __attribute__((always_inline)) size_t
     nextIndex(size_t i) const noexcept {
-        return (i + 1) & (items.size() - 1);
+        return (i + 1) & mask;
     }
 
 public:
-    explicit SPSCQueue(size_t slots_) : items(slots_) {
+    explicit SPSCQueue(size_t slots_) : items(slots_), mask(slots_ - 1) {
         assert((slots_ & (slots_ - 1)) == 0);
     }
 

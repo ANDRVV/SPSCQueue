@@ -40,16 +40,19 @@ pub fn SPSCQueue(comptime T: type) type {
     return struct {
         const Self = @This();
 
-        items: []T = undefined,
+        items: []T,
+        mask: usize,
         // producer and consumer are aligned to cache line
         // size in order to avoid false sharing
         producer: Atomic(usize) align(cache_line) = .init(0),
         consumer: Atomic(usize) align(cache_line) = .init(0),
 
+        push_cursor_cache: usize align(cache_line) = 0,
+        pop_cursor_cache: usize align(cache_line) = 0,
 
         pub fn initBuffer(buf: []T) Self {
             std.debug.assert(std.math.isPowerOfTwo(buf.len));
-            return .{ .items = buf };
+            return .{ .items = buf, .mask = buf.len - 1 };
         }
 
         pub fn initCapacity(allocator: std.mem.Allocator, slots: usize) error{OutOfMemory}!Self {
@@ -125,7 +128,7 @@ pub fn SPSCQueue(comptime T: type) type {
         }
 
         inline fn nextIndex(self: *const Self, i: usize) usize {
-            return (i + 1) & (self.items.len - 1);
+            return (i + 1) & self.mask;
         }
     };
 }
