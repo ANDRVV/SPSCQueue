@@ -27,7 +27,7 @@ empty is implicit in the difference between the two cursors, with no wasted slot
 # Benchmarks
 
 | Language | Command                                                           |
-| -------- | ----------------------------------------------------------------: |
+| -------- | :---------------------------------------------------------------- |
 | Zig      | zig run src/zig/benchmark.zig -O ReleaseFast -fomit-frame-pointer |
 | C++      | g++ src/cpp/benchmark.cpp -o benchmark -O3; ./benchmark           |
 
@@ -47,9 +47,10 @@ Tested benchmark on `Intel i7-12700H` with WSL2:
 
 Other queues:
 
-| Queue                          | Throughput (ops/ms) | Latency RTT (ns) |
-| SPSCQueue (rigtorp)            |              166279 |              206 |
-| boost::lockfree::spsc          |              258024 |              224 |
+| Queue                 | Throughput (ops/ms) | Latency RTT (ns) |
+| --------------------- | ------------------: | ---------------: |
+| SPSCQueue (rigtorp)   |              166279 |              206 |
+| boost::lockfree::spsc |              258024 |              224 |
 
 # API
 
@@ -75,10 +76,10 @@ pub fn initBuffer(buf: []T) Self
 pub fn initCapacity(allocator: std.mem.Allocator, slots: usize) error{OutOfMemory}!Self
 pub fn deinit(self: *Self, allocator: std.mem.Allocator) void
 
-pub fn push(self: *Self, value: T) void
-pub fn pop(self: *Self) T
-pub fn tryPush(self: *Self, value: T) bool
-pub fn tryPop(self: *Self) ?T
+pub fn push(self: *Self, value: T) void // blocking push
+pub fn pop(self: *Self) T // blocking pop
+pub fn tryPush(self: *Self, value: T) bool // non-blocking push
+pub fn tryPop(self: *Self) ?T // non-blocking pop
 
 pub inline fn count(self: *Self) usize
 pub inline fn isEmpty(self: *Self) bool
@@ -108,10 +109,11 @@ static constexpr size_t recommendedSlots();
 template<typename T>
 explicit SPSCQueue(size_t slots);
 
-void push(const T& value);
-T pop();
-bool tryPush(const T& value);
-bool tryPop(T& out);
+void skip(); /* pop() without returning value */
+void push(const T& value); /* blocking push */
+T pop(); /* blocking pop */
+bool tryPush(const T& value); /* non-blocking push */
+bool tryPop(T& out); /* non-blocking pop */
 
 size_t count() const;
 bool isEmpty() const;
