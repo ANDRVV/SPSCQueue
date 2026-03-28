@@ -162,7 +162,7 @@ public:
     size() const noexcept {
         size_t const write_index = producer.load(std::memory_order_acquire);
         size_t const read_index = consumer.load(std::memory_order_acquire);
-        return (write_index - read_index) & (items.size() - 1);
+        return (write_index - read_index) & mask;
     }
 
     [[nodiscard]] inline bool
