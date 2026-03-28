@@ -116,7 +116,7 @@ pub fn SPSCQueue(comptime T: type) type {
             return self.items[index];
         }
 
-        pub fn size(self: *Self) usize {
+        pub fn count(self: *Self) usize {
             const write_index = self.producer.load(.acquire);
             const read_index = self.consumer.load(.acquire);
             return (write_index - read_index) & self.mask;

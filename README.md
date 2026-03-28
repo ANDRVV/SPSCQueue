@@ -80,7 +80,7 @@ pub fn pop(self: *Self) T
 pub fn tryPush(self: *Self, value: T) bool
 pub fn tryPop(self: *Self) ?T
 
-pub inline fn size(self: *Self) usize
+pub inline fn count(self: *Self) usize
 pub inline fn isEmpty(self: *Self) bool
 ```
 
@@ -113,7 +113,7 @@ T pop();
 bool tryPush(const T& value);
 bool tryPop(T& out);
 
-size_t size() const;
+size_t count() const;
 bool isEmpty() const;
 ```
 
