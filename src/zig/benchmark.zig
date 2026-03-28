@@ -53,7 +53,7 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     {
-        var queue: SPSCQueue(u64) = .initCapacity(allocator, slots);
+        var queue: SPSCQueue(u64) = try .initCapacity(allocator, slots);
         defer queue.deinit(allocator);
 
         const th = try std.Thread.spawn(.{}, consumerThroughput, .{ &queue, core1 });
@@ -67,9 +67,9 @@ pub fn main() !void {
     }
 
     {
-        var q1: SPSCQueue(u64) = .initCapacity(allocator, slots);
+        var q1: SPSCQueue(u64) = try .initCapacity(allocator, slots);
         defer q1.deinit(allocator);
-        var q2: SPSCQueue(u64) = .initCapacity(allocator, slots);
+        var q2: SPSCQueue(u64) = try .initCapacity(allocator, slots);
         defer q2.deinit(allocator);
 
         const th = try std.Thread.spawn(.{}, consumerRTT, .{ &q1, &q2, core1 });

@@ -19,10 +19,6 @@ void pinToCore(size_t core_id) {
 constexpr size_t iterations = 10'000'000;
 size_t slots = recommendedSlots<uint64_t>();
 
-void doNotOptimizeAway(uint64_t& val) {
-    asm volatile("" : "+r,m"(val) :: "memory");
-}
-
 void producerThroughput(SPSCQueue<uint64_t>* q, size_t core) {
     pinToCore(core);
 
@@ -36,7 +32,6 @@ void consumerThroughput(SPSCQueue<uint64_t>* q, size_t core) {
 
     for (uint64_t i = 0; i < iterations; ++i) {
         uint64_t val = q->pop();
-        doNotOptimizeAway(val);
     }
 }
 
@@ -46,7 +41,6 @@ void producerRTT(SPSCQueue<uint64_t>* q1, SPSCQueue<uint64_t>* q2, size_t core) 
     for (uint64_t i = 0; i < iterations; ++i) {
         q1->push(i);
         uint64_t x = q2->pop();
-        doNotOptimizeAway(x);
     }
 }
 
