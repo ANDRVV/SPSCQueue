@@ -50,8 +50,7 @@ Other queues:
 | SPSCQueue (rigtorp)   |        (avg) 166279 |        (avg) 206 |
 | boost::lockfree::spsc |        (avg) 258024 |        (avg) 224 |
 
-# API
-
+# Zig
 **Example**
 ```zig
 const slots: u64 = queue.recommendedSlots(u64);
