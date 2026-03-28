@@ -114,13 +114,13 @@ pub fn SPSCQueue(comptime T: type) type {
             return self.items[index];
         }
 
-        pub inline fn size(self: *Self) usize {
+        pub fn size(self: *Self) usize {
             const write_index = self.producer.load(.acquire);
             const read_index = self.consumer.load(.acquire);
             return (write_index - read_index) & self.mask;
         }
 
-        pub inline fn isEmpty(self: *Self) bool {
+        pub fn isEmpty(self: *Self) bool {
             const write_index = self.producer.load(.acquire);
             const read_index = self.consumer.load(.acquire);
             return write_index == read_index;
