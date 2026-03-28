@@ -74,24 +74,14 @@ class alignas(CACHE_LINE) SPSCQueue {
         "T must be nothrow movable or copyable");
 
 private:
-    struct alignas(CACHE_LINE) AtomicCursor {
-        std::atomic<size_t> cursor{0};
-        char _padding[CACHE_LINE - sizeof(std::atomic<size_t>)];
-    };
-
-    struct alignas(CACHE_LINE) Cursor {
-        size_t cursor = 0;
-        char _padding[CACHE_LINE - sizeof(size_t)];
-    };
-
     std::vector<T> items;
     /* producer and consumer are aligned to cache line
      * size in order to avoid false sharing */
-    AtomicCursor producer;
-    AtomicCursor consumer;
+    alignas(CACHE_LINE) std::atomic<size_t> producer{0};
+    alignas(CACHE_LINE) std::atomic<size_t> consumer{0};
 
-    Cursor push_cursor_cache;
-    Cursor pop_cursor_cache;
+    alignas(CACHE_LINE) size_t push_cursor_cache = 0;
+    alignas(CACHE_LINE) size_t pop_cursor_cache = 0;
 
     inline __attribute__((always_inline)) size_t
     nextIndex(size_t i) const noexcept {
@@ -105,46 +95,46 @@ public:
 
     inline void
     push(const T& value) {
-        size_t const index = producer.cursor.load(std::memory_order_relaxed);
+        size_t const index = producer.load(std::memory_order_relaxed);
         size_t const next = nextIndex(index);
 
-        while (next == push_cursor_cache.cursor) {
+        while (next == push_cursor_cache) {
             /* In this line, the `asm pause` function is commented out,
              * assuming the consumer is hotter than the producer.
              * Uncomment this line below if the producer has a higher throughput.
              * spinLoopHint(); */
-            push_cursor_cache.cursor = consumer.cursor.load(std::memory_order_acquire);
+            push_cursor_cache = consumer.load(std::memory_order_acquire);
         }
 
         items[index] = value;
-        producer.cursor.store(next, std::memory_order_release);
+        producer.store(next, std::memory_order_release);
     }
 
     [[nodiscard]] inline bool
     tryPush(const T& value) {
-        size_t const index = producer.cursor.load(std::memory_order_relaxed);
+        size_t const index = producer.load(std::memory_order_relaxed);
         size_t const next = nextIndex(index);
 
-        if (next == push_cursor_cache.cursor) {
-            push_cursor_cache.cursor = consumer.cursor.load(std::memory_order_acquire);
-            if (next == push_cursor_cache.cursor) return false;
+        if (next == push_cursor_cache) {
+            push_cursor_cache = consumer.load(std::memory_order_acquire);
+            if (next == push_cursor_cache) return false;
         }
 
         items[index] = value;
-        producer.cursor.store(next, std::memory_order_release);
+        producer.store(next, std::memory_order_release);
         return true;
     }
 
     [[nodiscard]] inline T
     pop() {
-        size_t const index = consumer.cursor.load(std::memory_order_relaxed);
-        while (index == pop_cursor_cache.cursor) {
+        size_t const index = consumer.load(std::memory_order_relaxed);
+        while (index == pop_cursor_cache) {
             spinLoopHint();
-            pop_cursor_cache.cursor = producer.cursor.load(std::memory_order_acquire);
+            pop_cursor_cache = producer.load(std::memory_order_acquire);
         }
 
         T const value = items[index];
-        consumer.cursor.store(nextIndex(index), std::memory_order_release);
+        consumer.store(nextIndex(index), std::memory_order_release);
         return value;
     }
 
@@ -155,28 +145,28 @@ public:
 
     [[nodiscard]] inline bool
     tryPop(T& out) {
-        size_t const index = consumer.cursor.load(std::memory_order_relaxed);
-        if (index == pop_cursor_cache.cursor) {
-            pop_cursor_cache.cursor = producer.cursor.load(std::memory_order_acquire);
-            if (index == pop_cursor_cache.cursor) return false;
+        size_t const index = consumer.load(std::memory_order_relaxed);
+        if (index == pop_cursor_cache) {
+            pop_cursor_cache = producer.load(std::memory_order_acquire);
+            if (index == pop_cursor_cache) return false;
         }
 
         out = items[index];
-        consumer.cursor.store(nextIndex(index), std::memory_order_release);
+        consumer.store(nextIndex(index), std::memory_order_release);
         return true;
     }
 
     [[nodiscard]] inline size_t
     size() const noexcept {
-        size_t const write_index = producer.cursor.load(std::memory_order_acquire);
-        size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
+        size_t const write_index = producer.load(std::memory_order_acquire);
+        size_t const read_index = consumer.load(std::memory_order_acquire);
         return (write_index - read_index) & (items.size() - 1);
     }
 
     [[nodiscard]] inline bool
     isEmpty() const noexcept {
-        size_t const write_index = producer.cursor.load(std::memory_order_acquire);
-        size_t const read_index = consumer.cursor.load(std::memory_order_acquire);
+        size_t const write_index = producer.load(std::memory_order_acquire);
+        size_t const read_index = consumer.load(std::memory_order_acquire);
         return write_index == read_index;
     }
 };
