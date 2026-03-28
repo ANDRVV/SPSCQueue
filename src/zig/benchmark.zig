@@ -1,3 +1,5 @@
+// zig version: 0.15.1
+
 const std = @import("std");
 
 const SPSCQueue = @import("queue.zig").SPSCQueue;
@@ -52,6 +54,9 @@ fn consumerRTT(q1: *SPSCQueue(u64), q2: *SPSCQueue(u64), core: usize) void {
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
+    var stdout = std.fs.File.stdout().writer(&.{});
+    const writer = &stdout.interface;
+
     {
         var queue: SPSCQueue(u64) = try .initCapacity(allocator, slots);
         defer queue.deinit(allocator);
@@ -63,7 +68,7 @@ pub fn main() !void {
         const elapsed = timer.read();
 
         const ops_per_ms = @divFloor(iterations * std.time.ns_per_ms, elapsed);
-        std.debug.print("{d} ops/ms\n", .{ops_per_ms});
+        try writer.print("{d} ops/ms\n", .{ops_per_ms});
     }
 
     {
@@ -78,6 +83,6 @@ pub fn main() !void {
         const elapsed = timer.read();
         th.join();
 
-        std.debug.print("{d} ns RTT\n", .{@divFloor(elapsed, iterations)});
+        try writer.print("{d} ns RTT\n", .{@divFloor(elapsed, iterations)});
     }
 }
