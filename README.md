@@ -1,11 +1,57 @@
 # SPSCQueue
-A single producer single consumer wait-free and lock-free fixed size queue written in Zig, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation in C++ and faster than it.
+A single-producer single-consumer wait-free and lock-free fixed size queue, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation.
 
-## Implementation
+Designed to minimize latency and maximize processing speed without resorting to overly complex solutions.
 
-The implementation is intuitive, aiming for clarity and maximum performance. It also features `recommendedSlots()` for selecting the "sweet spot" for slots.
+## Optimizations
 
-# Zig
+* **Branchless index wrap**:
+Using `(idx + 1) & (size - 1)` instead of `if (idx == capacity) idx = 0` eliminates
+a branch in the hot path, removing a potential pipeline stall on every push and pop.
+This comes with a trade-off: capacity must be a power of two. In practice this is a
+reasonable constraint: use `recommendedSlots<T>()` to get a sensible default.
+
+* **`pause` in the spin loop**:
+When the queue is empty, the consumer spins with the `pause` instruction. This signals the CPU that the thread is in a spin-wait loop, reducing memory bus contention and improving throughput. The substantial difference is the correct positioning of the pause, see the `pop()` implementation
+
+* **No slot padding**:
+Extra dummy elements at the start and end of the internal array waste memory and reduce cache density.
+Slots are kept tightly packed in a plain `std::vector`, making them more likely to remain in cache under load.
+
+* **No slack slot**:
+Keeping a sentinel slot always empty wastes capacity. The distinction between full and
+empty is implicit in the difference between the two cursors, with no wasted slot.
+
+**See the resulting x86-64 assembly on https://godbolt.org/z/r7qTK5qPY.**
+
+# Benchmarks
+
+| Language | Command                                                           |
+| -------- | ----------------------------------------------------------------: |
+| Zig      | zig run src/zig/benchmark.zig -O ReleaseFast -fomit-frame-pointer |
+| C++      | g++ src/cpp/benchmark.cpp -o benchmark -O3; ./benchmark           |
+
+Tested benchmark on `Intel i7-12700H` with WSL2:
+
+| Queue (C++ version)        | Throughput (ops/ms) | Latency RTT (ns) |
+| -------------------------- | ------------------: | ---------------: |
+| SPSCQueue (Andrea Vaccaro) |       (p50)  943597 |        (p50) 142 |
+| SPSCQueue (Andrea Vaccaro) |       (p90) 1049140 |        (p90) 147 |
+| SPSCQueue (Andrea Vaccaro) |       (p99) 1068306 |        (p99) 152 |
+
+| Queue (Zig version)        | Throughput (ops/ms) | Latency RTT (ns) |
+| -------------------------- | ------------------: | ---------------: |
+| SPSCQueue (Andrea Vaccaro) |       (p50) 1008548 |        (p50) 179 |
+| SPSCQueue (Andrea Vaccaro) |       (p90) 1350722 |        (p90) 189 |
+| SPSCQueue (Andrea Vaccaro) |       (p99) 1357763 |        (p99) 190 |
+
+Other queues:
+
+| Queue                          | Throughput (ops/ms) | Latency RTT (ns) |
+| SPSCQueue (rigtorp)            |              166279 |              206 |
+| boost::lockfree::spsc          |              258024 |              224 |
+
+# API
 
 ## Example
 
@@ -70,18 +116,6 @@ bool tryPop(T& out);
 size_t size() const;
 bool isEmpty() const;
 ```
-
-## Benchmarks
-
-(see benchmark files on src/zig and src/cpp)
-Benchmark results from 12th Gen Intel(R) Core(TM) i7-12700H with `-O3` and CPU affinity settings on every thread:
-
-| Queue                           | Throughput (ops/ms) | Latency RTT (ns) |
-| ------------------------------- | ------------------: | ---------------: |
-| SPSCQueue Zig (Andrea Vaccaro)  | (best-case) 1107122 |  (best-case) 168 |
-| SPSCQueue C++ (Andrea Vaccaro)  | (best-case) 1361409 |  (best-case) 151 |
-| SPSCQueue (rigtorp)             |              166279 |              206 |
-| boost::lockfree::spsc           |              258024 |              224 |
 
 ## About
 
