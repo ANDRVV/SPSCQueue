@@ -1,6 +1,6 @@
 # SPSCQueue
-A single-producer single-consumer wait-free and lock-free fixed size queue, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation.
-Designed to minimize latency and maximize processing speed without resorting to overly complex solutions.
+A single-producer single-consumer wait-free and lock-free fixed size queue, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation and faster than it.
+Designed to minimize latency and maximize processing speed without overengineering.
 
 ## Optimizations
 
