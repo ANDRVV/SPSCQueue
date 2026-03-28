@@ -1,6 +1,5 @@
 # SPSCQueue
 A single-producer single-consumer wait-free and lock-free fixed size queue, inspired by [rigtorp's](https://github.com/rigtorp/SPSCQueue/tree/master) implementation.
-
 Designed to minimize latency and maximize processing speed without resorting to overly complex solutions.
 
 ## Optimizations
@@ -22,14 +21,13 @@ Slots are kept tightly packed in a plain `std::vector`, making them more likely 
 Keeping a sentinel slot always empty wastes capacity. The distinction between full and
 empty is implicit in the difference between the two cursors, with no wasted slot.
 
-**See the resulting x86-64 assembly on https://godbolt.org/z/r7qTK5qPY.**
+**See the resulting GCC x86-64 assembly on https://godbolt.org/z/r7qTK5qPY.**
 
 # Benchmarks
 
-| Language | Command                                                           |
-| -------- | :---------------------------------------------------------------- |
-| Zig      | zig run src/zig/benchmark.zig -O ReleaseFast -fomit-frame-pointer |
-| C++      | g++ src/cpp/benchmark.cpp -o benchmark -O3; ./benchmark           |
+To run local benchmark:
+* For **Zig** implementation: `zig run src/zig/benchmark.zig -O ReleaseFast -fomit-frame-pointer`
+* For **C++** implementation: `g++ src/cpp/benchmark.cpp -o benchmark -O3; ./benchmark`
 
 Tested benchmark on `Intel i7-12700H` with WSL2:
 
@@ -49,13 +47,12 @@ Other queues:
 
 | Queue                 | Throughput (ops/ms) | Latency RTT (ns) |
 | --------------------- | ------------------: | ---------------: |
-| SPSCQueue (rigtorp)   |              166279 |              206 |
-| boost::lockfree::spsc |              258024 |              224 |
+| SPSCQueue (rigtorp)   |        (avg) 166279 |        (avg) 206 |
+| boost::lockfree::spsc |        (avg) 258024 |        (avg) 224 |
 
 # API
 
-## Example
-
+**Example**
 ```zig
 const slots: u64 = queue.recommendedSlots(u64);
 
@@ -69,8 +66,7 @@ while (i < 1000) : (i += 1) {
 }
 ```
 
-## API
-
+**API**
 ```zig
 pub fn initBuffer(buf: []T) Self
 pub fn initCapacity(allocator: std.mem.Allocator, slots: usize) error{OutOfMemory}!Self
@@ -86,9 +82,7 @@ pub inline fn isEmpty(self: *Self) bool
 ```
 
 # C++
-
-## Example
-
+**Example**
 ```cpp
 size_t slots = recommendedSlots<uint64_t>();
 
@@ -101,8 +95,7 @@ for (uint64_t i = 0; i < 1000; ++i) {
 }
 ```
 
-## API
-
+**API**
 ```cpp
 template<typename T>
 static constexpr size_t recommendedSlots();
