@@ -26,17 +26,9 @@
  */
 
 #include <atomic>
-#include <new>
 #include <cassert>
-#include <cstddef>
-#include <cstdint>
 #include <vector>
-
-#if defined(_MSC_VER)
-    #include <intrin.h>
-#elif defined(__GNUC__) || defined(__clang__)
-    #include <xmmintrin.h>
-#endif
+#include <thread>
 
 #ifdef __cpp_lib_hardware_interference_size
     #define CACHE_LINE std::hardware_destructive_interference_size
@@ -47,9 +39,13 @@
 inline __attribute__((always_inline)) void
 spinLoopHint() noexcept {
 #if defined(__x86_64__) || defined(_M_X64)
-    _mm_pause();
+    asm volatile("pause" ::: "memory");
 #elif defined(__aarch64__)
     asm volatile("yield" ::: "memory");
+#elif defined(__riscv)
+    asm volatile("nop" ::: "memory");
+#elif defined(__mips__)
+    asm volatile("nop" ::: "memory");
 #else
     std::this_thread::yield();
 #endif
