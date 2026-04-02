@@ -21,7 +21,7 @@ Slots are kept tightly packed in a plain `std::vector`, making them more likely 
 Keeping a sentinel slot always empty wastes capacity. The distinction between full and
 empty is implicit in the difference between the two cursors, with no wasted slot.
 
-**See the resulting GCC x86-64 assembly on https://godbolt.org/z/r7qTK5qPY.**
+**See the resulting GCC x86-64 assembly on https://godbolt.org/z/xzxTjf6nW**
 
 # Benchmarks
 
@@ -29,7 +29,7 @@ To run local benchmark:
 * For **Zig** implementation: `zig run src/zig/benchmark.zig -O ReleaseFast -fomit-frame-pointer`
 * For **C++** implementation: `g++ src/cpp/benchmark.cpp -o benchmark -O3; ./benchmark`
 
-Tested benchmark on `Intel i7-12700H` with WSL2:
+Benchmarked on `Intel i7-12700H` with WSL2:
 
 | Queue (C++ version)        | Throughput (ops/ms) | Latency RTT (ns) |
 | -------------------------- | ------------------: | ---------------: |
@@ -43,7 +43,7 @@ Tested benchmark on `Intel i7-12700H` with WSL2:
 | SPSCQueue (Andrea Vaccaro) |       (p90) 1350722 |        (p90) 189 |
 | SPSCQueue (Andrea Vaccaro) |       (p99) 1357763 |        (p99) 190 |
 
-Other queues:
+Other queues (recommended to benchmark with [rigtorp' benchmark](https://github.com/rigtorp/SPSCQueue/blob/master/src/SPSCQueueBenchmark.cpp)):
 
 | Queue                 | Throughput (ops/ms) | Latency RTT (ns) |
 | --------------------- | ------------------: | ---------------: |
